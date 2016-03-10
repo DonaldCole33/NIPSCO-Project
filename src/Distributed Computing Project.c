@@ -68,18 +68,18 @@ static int foundFlag = 0;
  * 	add the totals up and use this algorithm
  *
  */
-struct Correlation{
-	//Structure for Computing the Pearson Correlation algorithm
-	int outtageDataX;	//add the data to each element in the array
-	double weatherDataY[3000];	//add a one for each hour not found
-	struct tm dateArray[3000];		//the dates that are valid we need to find in weather data
-	int startMonth;					//The start month
-	int durationofMonths;			//amount of months we are looking at
-	int LOA;						//integer of the LOA
+struct Correlation{				//Structure for Computing the Pearson Correlation algorithm
+	int outtageDataX;					//add the data to each element in the array
+	double weatherDataY[3000];			//add a one for each hour not found
+	struct tm dateArray[3000];			//the dates that are valid we need to find in weather data
+	int startMonth;						//The start month
+	int durationofMonths;				//amount of months we are looking at
+	int LOA;							//integer of the LOA
 	const char* weatherFactorName;		//name of the weather factor we are correlating
+	const char* outageCauseName;		//Name of the Outage we are correlating
 };
 
-void readWeatherFile(FILE* weatherFile, struct Correlation* cData);
+//void readWeatherFile(FILE* weatherFile, struct Correlation* cData);
 
 void ComputeCorrelation(struct Correlation* cData){
 	//first sum the X and Y data
@@ -231,48 +231,50 @@ void cb2 (int c, void *weatherFactor) {
 
 //prints each data set
 void cb3 (void *src, size_t len, void *cData) {
-	static int currentLOAColumn;		//Keep track of where certain data is in each column
-	static int currentTimeColumn;
-	static int currentDurationColumn;
+	static int currentLOAColumn,		//Keep track of where certain data is in each column
+				currentTimeColumn,
+				currentDurationColumn,
+				currentCauseColumn;
 	struct tm date;						//for parsing date information
 	static int validRowFlag = 0;		//for when you are on a correct row
 	static int validDateFlag = 0;		//found a date of an outtage
+	static int validCauseFlag = 0;		//found a cause in the current row
 	int currentLOA;
 	char buf[50];		//String Buffer
 	//const char* myCellData;
 	//int timeDuration;			//time duration of the outtage
 
-	len = csv_write(buf, 50, src, len);
-	/* get the first token */
-	char* myCellData = strtok(buf, "\"");
+	len = csv_write(buf, 50, src, len);			//Copy to Buffer for easy parsing & string Management
+	char* myCellData = strtok(buf, "\"");		//Get rid of the Quotes & add an /0 char
 
 	//Convert the string to a comparable and readable format
 	//char *myCellData = (char*) malloc(sizeof(char)*len);
 	//memcpy(myCellData, (char *)s, len);	//Copy the string into a placeholder
-	struct Correlation *mycData = (struct Correlation*)cData;
+	struct Correlation *mycData = (struct Correlation*)cData;				//Convert the Pointer
 	//struct OuttageFactor *myfactor = (struct OuttageFactor*)outtageData;		//convert to weatherFactor pointer
 	//struct OuttageFactor *myfactor = mycData->outtageFactor;
-	int myMonth = mycData->startMonth;
-	int durationofMonths = mycData->durationofMonths;
+	int myMonth = mycData->startMonth;										//Track the month
+	int durationofMonths = mycData->durationofMonths;						//Track the amount of months
 
 	//printf("%s\n", cellData);	//Print the data to Screen
 
-	if (CURRENT_OUTTAGE_ROW_NUM > 0){	//to access the correct Data and not the header
-		if (CURRENT_COLUMN_NUM == currentLOAColumn){	//Checking the LOA Column
-			if(mycData->LOA == atoi(myCellData)){	//Check for the correct LOA
+	if (CURRENT_OUTTAGE_ROW_NUM > 0){						//to access the correct Data and not the header
+		if (CURRENT_COLUMN_NUM == currentLOAColumn){		//Checking the LOA Column
+			if(mycData->LOA == atoi(myCellData)){			//Check for the correct LOA
 				currentLOA = atoi(myCellData);
-				validRowFlag = 1;
+				validRowFlag = 1;							//We are on the correct LOA Row
 			}
 		}
 		//Now we are on the correct row and have found an outtage, now we need to get the date so
 		//we can get the matching weather data
 		else if(currentTimeColumn == CURRENT_COLUMN_NUM && validRowFlag){	//Get the Date
 			strptime(myCellData, "%m/%d/%y %H:%M", &date);
-			//if( date.tm_mon == NULL || date.tm_mday == NULL || date.tm_hour == NULL){		//parse the date info
-			//	fprintf(stderr, "Failed to convert the Date from Outtage Data");
-			//	exit(EXIT_FAILURE);
-			//}
 			validDateFlag = 1;
+		}
+		else if(currentCauseColumn == CURRENT_COLUMN_NUM && validRowFlag){	//Get the Cause
+			if (strcmp(mycData->outageCauseName, myCellData) == 0){			//Found the Cause
+				validCauseFlag = 1;
+			}
 		}
 	}
 	else{		//We need to first find the column that the LOA is in
@@ -282,17 +284,22 @@ void cb3 (void *src, size_t len, void *cData) {
 		else if (strcmp("REPORTED", myCellData) == 0){
 			currentTimeColumn = CURRENT_COLUMN_NUM;
 		}
+		else if (strcmp("CAUSE", myCellData) == 0){
+			currentCauseColumn = CURRENT_COLUMN_NUM;
+		}
 		else if (strcmp("DURATION_HRS", myCellData) == 0){
 			currentDurationColumn = CURRENT_COLUMN_NUM;
 		}
 	}
 
-	if (validDateFlag == 1 && date.tm_mon >= myMonth - 1 && date.tm_mon < myMonth+durationofMonths){
+	if (validDateFlag &&
+			validCauseFlag &&
+			date.tm_mon >= myMonth - 1 &&
+			date.tm_mon < myMonth+durationofMonths ){
 		//for (int i = myMonth; i < durationofMonths; i++){	//Need to see if we actually do work, and the months match my months
 			//If the range of months we are looking for match the current found month
 			//and it is not a significant Date
-		if (CheckDate(&date)){
-			//Do some work and add the date to get the weather data
+		if (CheckDate(&date)){							//Do some work and add the date to get the weather data
 			//printf("%d Row=%d LOA=%d, DATE=%s\n", sampleSize, CURRENT_OUTTAGE_ROW_NUM, currentLOA, myCellData);
 			memcpy(&mycData->dateArray[sampleSize++], &date, sizeof(date));	//This is the date we need to match in the weather data
 			foundFlag = 1;						//set the found flag to exit the outtage data and look for the weather data
@@ -322,8 +329,9 @@ char* getfield(char* line, int num){
     return NULL;
 }
 
-/* This program takes a minimum of 2 arguments
- * 1 - The LOA that we are correlating
+/* This program takes a minimum of 3 arguments
+ * 1 - The LOA that we are matching the weather data to
+ * 2 - The Outage Cause that we want to correlate
  * 2 - The Weather factor that is found in the data files given which must match a header
  *
  * The program will output the Data to the user whether or not there is a correlation
@@ -337,26 +345,16 @@ int main(int argc, char **argv){
 	struct csv_parser of;		//struct for outtage data
 	FILE *weatherFile;
 	FILE *outtageFile;
-			//Initialize the CSV Struct
-	csv_init(&of, 0);
-	csv_init(&wf, 0);
+	csv_init(&of, 0);			//Outage CSV
+	csv_init(&wf, 0);			//Weather CSV
 	struct Correlation* cData = (struct Correlation*)malloc(sizeof(struct Correlation*));
-	//cData->weatherFactor = (struct WeatherFactor*)malloc(sizeof(struct WeatherFactor*));
-	//cData->outtageFactor = (struct OuttageFactor*)malloc(sizeof(struct OuttageFactor*));
-//	cData->weatherDataX = (double*)malloc(3000*sizeof(double*));		//adds the weather data
 	cData->outtageDataX = 0;			//adds the amount of outtages
 
 	/*	MPI INITS	*/
-	int myrank;
-	int numProcessors,
+	int myrank,
+		numProcessors,
 		s,
 		startMonth = 0;
-	int months = 12;
-	//int *myMonth;	//Month Array
-
-	//for (int i = 0; i < MONTHS; i++){
-	//	myMonth[i] = i+1;
-	//}
 
 	MPI_Status status;
 
@@ -374,7 +372,6 @@ int main(int argc, char **argv){
 				/*	PHASE I	*/
 
 	s = MONTHS/numProcessors;	//months per processor
-	//cData->dateArray = (struct tm*)malloc(3000*sizeof(struct tm*));		//storage for the amount of days in s months
 
 	if(myrank == MASTER){	//Master
 		//printf("We have %d processors\n", numProcessors);
@@ -419,12 +416,12 @@ int main(int argc, char **argv){
 
 	printf("Begin Computing");
 
-	checkArgs(argc, argv);
-	//convertDate(weatherFactor, argv);		//assign date and check for major event days
-	cData->LOA = atoi(argv[1]);
-	cData->weatherFactorName = argv[2];
-	cData->startMonth = startMonth;
-	cData->durationofMonths = s;
+	checkArgs(argc, argv);						//Confirm the args are correct
+	cData->LOA = atoi(argv[1]);					//assign the LOA
+	cData->outageCauseName = argv[2];			//Assign the outage cause
+	cData->weatherFactorName = argv[3];			//Assign the weather Factor
+	cData->startMonth = startMonth;				//Assign the start month
+	cData->durationofMonths = s;				//Assign the Number of Months to Compute
 
 	//open the file to Read, Using "rb" for non-text files
 	weatherFile = fopen(GOSHEN_WEATHER_FILE, "rb");
@@ -521,24 +518,24 @@ int main(int argc, char **argv){
 	return EXIT_SUCCESS;
 }
 
-void readWeatherFile(FILE* weatherFile, struct Correlation* cData ){
-	char buf[1024];
-	struct csv_parser wf;
-	csv_init(&wf, 0);
-	int i;
-
-	while((i = fread(buf, 1, 1024, weatherFile)) > 0){	//find the weather data of the outtage found
-		if (csv_parse(&wf, buf, i, cb1, cb2, cData) != i){
-			fprintf(stderr, "Error parsing file: %s\n", csv_strerror(csv_error(&wf)));
-			fclose(weatherFile);
-			fclose(weatherFile);
-			//remove(argv[2]);
-			exit(EXIT_FAILURE);
-		}
-	}
-	csv_fini(&wf, cb1, cb2, cData);
-	csv_free(&wf);
-}
+//void readWeatherFile(FILE* weatherFile, struct Correlation* cData ){
+//	char buf[1024];
+//	struct csv_parser wf;
+//	csv_init(&wf, 0);
+//	int i;
+//
+//	while((i = fread(buf, 1, 1024, weatherFile)) > 0){	//find the weather data of the outtage found
+//		if (csv_parse(&wf, buf, i, cb1, cb2, cData) != i){
+//			fprintf(stderr, "Error parsing file: %s\n", csv_strerror(csv_error(&wf)));
+//			fclose(weatherFile);
+//			fclose(weatherFile);
+//			//remove(argv[2]);
+//			exit(EXIT_FAILURE);
+//		}
+//	}
+//	csv_fini(&wf, cb1, cb2, cData);
+//	csv_free(&wf);
+//}
 
 //void convertDate(struct Correlation* cData, char** argv){
 //	int dateInt;
@@ -590,8 +587,8 @@ void checkArgs(int argc, char* argv[]){
 //	}
 
 	//Need at least 2 arguments
-	if (argc < 3) {
-		fprintf(stderr, "Error: Need the LOA and Weather Factor.\n");
+	if (argc < 4) {
+		fprintf(stderr, "Error: Need the LOA, Outage Cause, and Weather Factor.\n");
 		exit(EXIT_FAILURE);
 	}
 
