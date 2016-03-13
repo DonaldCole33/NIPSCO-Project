@@ -34,21 +34,22 @@ void checkArgs(int argc, char* argv[]);
 
 void ComputeCorrelation(struct Correlation* cData){
 	//first sum the X and Y data
-	double xsum = cData->outtageDataX;
+	double xsum = 0;
 	double ysum = 0;
 	double xysum = 0;
 	double xsqSum = 0;
 	double ysqSum = 0;
 
-	xsqSum = pow(xsum,2);
-
-	for (int i = 0; i < maxSample; i++){	//Compute sums of Weather Data
+	for (int i = 0; i < 12; i++){			//Compute sums of Weather Data
 		ysum += cData->weatherDataY[i];
 		ysqSum += pow(cData->weatherDataY[i], 2);
+		xsum += cData->outtageDataX[i];
+		xsqSum += pow(cData->outtageDataX[i], 2);
+		xysum += cData->weatherDataY[i]*cData->outtageDataX[i];
 	}
-	xysum = ysum;	//x's are only ones, summed after multiplying each x*y
-	double numerator = sampleSize * xysum - (xsum * ysum);
-	double denomenator = sqrt((sampleSize * xsqSum - pow(xsum,2)) *(sampleSize * ysqSum - pow(ysum,2)));
+
+	double numerator = maxSample * xysum - (xsum * ysum);
+	double denomenator = sqrt((maxSample * xsqSum - pow(xsum,2)) *(maxSample * ysqSum - pow(ysum,2)));
 	double cf = (numerator/denomenator);
 	if (cf >= .5){
 		printf("YES, CF = %lf\n", cf);
@@ -101,14 +102,13 @@ void cb1 (void *src, size_t len, void *cData) {
 	len = csv_write(buf, 100, src, len);
 	char* cellData = strtok(buf, "\"");										//Convert to String
 	struct Correlation *mycData = (struct Correlation*)cData;				//convert the cData pointer
-
+	const struct tm *datetofind = &mycData->dateArray[sampleSize-1];
 	//printf("%s\n", cellData);	//Print the data to Screen
 
 	if (CURRENT_WEATHER_ROW_NUM > 0
 			&& sampleSize > 0
 			&& CURRENT_COLUMN_NUM > 0
 			&& CURRENT_COLUMN_NUM < 4){	//to access the correct Date Data
-		struct tm *datetofind = &mycData->dateArray[sampleSize-1];
 
 		if (CURRENT_COLUMN_NUM == 1 &&
 				datetofind->tm_mon == (atoi(cellData)-1) &&
@@ -151,8 +151,10 @@ void cb1 (void *src, size_t len, void *cData) {
 		}
 		else{	//Output the Found data
 			printf("SS = %d, Data = %s\n", sampleSize - 1, cellData);					//print the data found
-			mycData->weatherDataY[--sampleSize] = atof(cellData);		//assign the data as float
-			//--sampleSize;					//Decrease the sample size, data done
+			//OLD WAY -> mycData->weatherDataY[--sampleSize] = atof(cellData);		//assign the data as float
+			//NEW WAY
+			mycData->weatherDataY[datetofind->tm_mon] += atof(cellData);			//add the amount of Data
+			--sampleSize;					//Decrease the sample size, data done
 			foundFlag = 0;					//reset the found flag
 			monthFlag = 0;					//reset flags
 			dayFlag = 0;
@@ -233,16 +235,18 @@ void cb3 (void *src, size_t len, void *cData) {
 			//If the range of months we are looking for match the current found month
 			//and it is not a significant Date
 		if (CheckDate(&date)){							//Do some work and add the date to get the weather data
+			//Need to hash the data found
 			printf("%d Row=%d LOA=%d, DATE=%s\n", sampleSize, CURRENT_OUTTAGE_ROW_NUM, currentLOA, myCellData);
 			memcpy(&mycData->dateArray[sampleSize++], &date, sizeof(date));	//This is the date we need to match in the weather data
+			mycData->outtageDataX[date.tm_mon]++;	//number of outtages per month
+
 			foundFlag = 1;						//set the found flag to exit the outtage data and look for the weather data
 			validDateFlag = 0;					//reset flag
 			validRowFlag = 0;					//Reset Flag
 			validCauseFlag = 0;
-			mycData->outtageDataX++;	//increase the outage number for the sample size
 		}
 	}
-	printf("%d\n", CURRENT_COLUMN_NUM++, CURRENT_OUTTAGE_ROW_NUM);
+	//printf("%d\n", CURRENT_COLUMN_NUM++, CURRENT_OUTTAGE_ROW_NUM);
 	CURRENT_COLUMN_NUM++;
 }
 
@@ -272,7 +276,13 @@ int main(int argc, char **argv){
 	csv_init(&of, 0);			//Outage CSV
 	csv_init(&wf, 0);			//Weather CSV
 	struct Correlation* cData = (struct Correlation*)malloc(sizeof(struct Correlation*));
-	cData->outtageDataX = 0;			//adds the amount of outtages
+	cData->weatherDataY = (double*)malloc(12*sizeof(double));
+	cData->outtageDataX = (int*)malloc(12*sizeof(int));
+
+	for (int i = 0; i < 12; i++){		//Assign Arrays all zeros
+		cData->weatherDataY[i]=0;
+		cData->outtageDataX[i]=0;
+	}
 
 	/*	MPI INITS	*/
 	int myrank,
