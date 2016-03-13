@@ -39,25 +39,48 @@ void ComputeCorrelation(struct Correlation* cData){
 	double xysum = 0;
 	double xsqSum = 0;
 	double ysqSum = 0;
+	int sampleSize = 0;		//sample size per month
+	int startMonth = cData->startMonth;
+	int endMonth = startMonth + cData->durationofMonths;
+	double numerator = 0;
+	double denomenator = 0;
+	double cf = 0;
 
-	for (int i = 0; i < 12; i++){			//Compute sums of Weather Data
-		ysum += cData->weatherDataY[i];
-		ysqSum += pow(cData->weatherDataY[i], 2);
-		xsum += cData->outtageDataX[i];
-		xsqSum += pow(cData->outtageDataX[i], 2);
-		xysum += cData->weatherDataY[i]*cData->outtageDataX[i];
+	for (int i = startMonth; i < endMonth; i++){	//Compute CF for each month
+		for (int j = 0; j < 31; j++){
+			if (cData->outtageDataX[i][j]>0){
+				sampleSize++;
+				ysum += cData->weatherDataY[i][j];
+				ysqSum += pow(cData->weatherDataY[i][j], 2);
+				xsum += cData->outtageDataX[i][j];
+				xsqSum += pow(cData->outtageDataX[i][j], 2);
+				xysum += cData->weatherDataY[i][j]*cData->outtageDataX[i][j];
+			}
+		}
+
+		numerator = sampleSize * xysum - (xsum * ysum);
+		denomenator = sqrt((sampleSize * xsqSum - pow(xsum,2)) *(sampleSize * ysqSum - pow(ysum,2)));
+
+		if (denomenator != 0){
+			cf = (numerator/denomenator);
+		}
+		else
+			cf = 0;
+
+		if (cf >= .5){
+			printf("YES, CF = %lf\n", cf);
+		}
+		else{
+			printf("NO, CF = %lf\n", cf);
+		}
+		printf("Sample Size = %d\nYsum = %lf\n", sampleSize, ysum);
+
+		//Reset all variables
+		ysum = 0; ysqSum = 0; xsum = 0; xsqSum = 0; xysum = 0;
+		numerator = 0; denomenator = 0; cf = 0; sampleSize = 0;
 	}
 
-	double numerator = maxSample * xysum - (xsum * ysum);
-	double denomenator = sqrt((maxSample * xsqSum - pow(xsum,2)) *(maxSample * ysqSum - pow(ysum,2)));
-	double cf = (numerator/denomenator);
-	if (cf >= .5){
-		printf("YES, CF = %lf\n", cf);
-	}
-	else{
-		printf("NO, CF = %lf\n", cf);
-	}
-	printf("Sample Size = %d\nYsum = %lf\n", maxSample, ysum);
+
 }
 
 int CheckDate(struct tm* date){		//Return 0 for invalid date, 1 for valid date
@@ -139,10 +162,9 @@ void cb1 (void *src, size_t len, void *cData) {
 	if (monthFlag && dayFlag && hourFlag && CURRENT_COLUMN_NUM == currentDataColumn){	//found data
 		if (cellData == NULL){
 		//if (strncmp("", cellData, 1) == 0){		//Missing data
-			//printf("The data is missing and not available.\n");
-			//printf("SS = %d, Data = %s\n", sampleSize - 1, cellData);					//print the data found
-			mycData->weatherDataY[--sampleSize] = 0;		//Data missing enter 0
-			//--sampleSize;					//Decrease the sample size, data done
+			printf("The data is missing and not available.\n");
+			mycData->outtageDataX[datetofind->tm_mon][datetofind->tm_mday - 1] -= 1;		//Remove the outage data
+			--sampleSize;					//Decrease the sample size, data done
 			foundFlag = 0;					//reset the found flag
 			monthFlag = 0;					//reset flags
 			dayFlag = 0;
@@ -153,7 +175,7 @@ void cb1 (void *src, size_t len, void *cData) {
 			printf("SS = %d, Data = %s\n", sampleSize - 1, cellData);					//print the data found
 			//OLD WAY -> mycData->weatherDataY[--sampleSize] = atof(cellData);		//assign the data as float
 			//NEW WAY
-			mycData->weatherDataY[datetofind->tm_mon] += atof(cellData);			//add the amount of Data
+			mycData->weatherDataY[datetofind->tm_mon][datetofind->tm_mday - 1] += atof(cellData);			//add the amount of Data
 			--sampleSize;					//Decrease the sample size, data done
 			foundFlag = 0;					//reset the found flag
 			monthFlag = 0;					//reset flags
@@ -238,7 +260,7 @@ void cb3 (void *src, size_t len, void *cData) {
 			//Need to hash the data found
 			printf("%d Row=%d LOA=%d, DATE=%s\n", sampleSize, CURRENT_OUTTAGE_ROW_NUM, currentLOA, myCellData);
 			memcpy(&mycData->dateArray[sampleSize++], &date, sizeof(date));	//This is the date we need to match in the weather data
-			mycData->outtageDataX[date.tm_mon]++;	//number of outtages per month
+			mycData->outtageDataX[date.tm_mon][date.tm_mday - 1]++;	//number of outtages per month
 
 			foundFlag = 1;						//set the found flag to exit the outtage data and look for the weather data
 			validDateFlag = 0;					//reset flag
@@ -276,12 +298,14 @@ int main(int argc, char **argv){
 	csv_init(&of, 0);			//Outage CSV
 	csv_init(&wf, 0);			//Weather CSV
 	struct Correlation* cData = (struct Correlation*)malloc(sizeof(struct Correlation*));
-	cData->weatherDataY = (double*)malloc(12*sizeof(double));
-	cData->outtageDataX = (int*)malloc(12*sizeof(int));
+//	cData->weatherDataY = (double*)malloc(12*sizeof(double));
+//	cData->outtageDataX = (int*)malloc(12*sizeof(int));
 
 	for (int i = 0; i < 12; i++){		//Assign Arrays all zeros
-		cData->weatherDataY[i]=0;
-		cData->outtageDataX[i]=0;
+		for (int j = 0; j < 31; j++){
+			cData->weatherDataY[i][j]=0;
+			cData->outtageDataX[i][j]=0;
+		}
 	}
 
 	/*	MPI INITS	*/
@@ -290,22 +314,22 @@ int main(int argc, char **argv){
 		s,
 		startMonth = 0;
 
-	MPI_Status status;
+	//MPI_Status status;
 
-	rc = MPI_Init(&argc, &argv);						//init MPI World
-	if (rc != MPI_SUCCESS){
-	     printf ("Error starting MPI program. Terminating.\n");
-	     MPI_Abort(MPI_COMM_WORLD, rc);
-	}
+//	rc = MPI_Init(&argc, &argv);						//init MPI World
+//	if (rc != MPI_SUCCESS){
+//	     printf ("Error starting MPI program. Terminating.\n");
+//	     MPI_Abort(MPI_COMM_WORLD, rc);
+//	}
 
-	MPI_Comm_size(MPI_COMM_WORLD, &numProcessors);	//get number of processors
-	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);		//get processor rank (id)
+//	MPI_Comm_size(MPI_COMM_WORLD, &numProcessors);	//get number of processors
+//	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);		//get processor rank (id)
 
-   printf ("Number of CPUs= %d My rank= %d\n", numProcessors,myrank);
+	//printf ("Number of CPUs= %d My rank= %d\n", numProcessors,myrank);
 
 				/*	PHASE I	*/
 
-	s = MONTHS/numProcessors;	//months per processor
+	//s = MONTHS/numProcessors;	//months per processor
 //
 //	if(myrank == MASTER){	//Master
 //		//printf("We have %d processors\n", numProcessors);

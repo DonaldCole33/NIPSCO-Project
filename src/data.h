@@ -23,8 +23,8 @@
 
 
 struct Correlation{				//Structure for Computing the Pearson Correlation algorithm
-	int *outtageDataX;				//add the data to each element in the array
-	double *weatherDataY;			//add a one for each hour not found
+	int outtageDataX[12][31];				//add the data to each element in the array
+	double weatherDataY[12][31];			//add a one for each hour not found
 	struct tm dateArray[3000];			//the dates that are valid we need to find in weather data
 	hashtable_t* weatherHashTable;		//hold the weather data
 	hashtable_t * outageHashTable;		//hold the outage data
