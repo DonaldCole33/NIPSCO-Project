@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <csv.h>
+#include "csv.h"
 #include <string.h>
 #include <errno.h>
 #include <setjmp.h>
@@ -314,63 +314,63 @@ int main(int argc, char **argv){
 		s,
 		startMonth = 0;
 
-	//MPI_Status status;
+	MPI_Status status;
 
-//	rc = MPI_Init(&argc, &argv);						//init MPI World
-//	if (rc != MPI_SUCCESS){
-//	     printf ("Error starting MPI program. Terminating.\n");
-//	     MPI_Abort(MPI_COMM_WORLD, rc);
-//	}
+	rc = MPI_Init(&argc, &argv);						//init MPI World
+	if (rc != MPI_SUCCESS){
+	     printf ("Error starting MPI program. Terminating.\n");
+	     MPI_Abort(MPI_COMM_WORLD, rc);
+	}
 
-//	MPI_Comm_size(MPI_COMM_WORLD, &numProcessors);	//get number of processors
-//	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);		//get processor rank (id)
+	MPI_Comm_size(MPI_COMM_WORLD, &numProcessors);	//get number of processors
+	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);		//get processor rank (id)
 
-	//printf ("Number of CPUs= %d My rank= %d\n", numProcessors,myrank);
+	printf ("Number of CPUs= %d My rank= %d\n", numProcessors,myrank);
 
 				/*	PHASE I	*/
 
-	//s = MONTHS/numProcessors;	//months per processor
-//
-//	if(myrank == MASTER){	//Master
-//		//printf("We have %d processors\n", numProcessors);
-//
-//		for (int i = 1, startMonth = s; i < numProcessors; startMonth = startMonth+s, i++ ){	//Send out the data
-//			printf("Master -> Sending out to CPU %d\n", i);
-//			rc = MPI_Send(&startMonth,	//number of the starting month
-//					s, 			//amount of months to process
-//					MPI_INT, 	//data type
-//					i, 			//Who should be receiving the data
-//					i,			//Tag
-//					MPI_COMM_WORLD);	//Send the data to the processors
-//			if (rc != MPI_SUCCESS){
-//				printf("%d: Send failure on round %d\n", myrank, i);
-//			}
-//			printf("Data Sent Success!\n");
-//		}
-//	}
-//	else{	//Slaves receive from Master
-//		for (int i = 1; i < numProcessors; i++){
-//			printf("Node %d Receiving\n", i);
-//			rc = MPI_Recv(&startMonth, 		//Your starting Month
-//					s, 						//How many months your getting
-//					MPI_INT, 				//type of data received
-//					MASTER, 				//From where
-//					i, 						//Tag
-//					MPI_COMM_WORLD, 		//To which group of processors
-//					&status);				//Success or Failure
-//			printf("Processor %d starting on month %d for %d months\n", i, startMonth, s);	//Debug Message
-//
-//			if (rc != MPI_SUCCESS){
-//				printf("Processor %d: Receive failure on round %d\n", (int)myrank, i);
-//			}
-//		}
-//	}
+	s = MONTHS/numProcessors;	//months per processor
+
+	if(myrank == MASTER){	//Master
+		//printf("We have %d processors\n", numProcessors);
+
+		for (int i = 1, startMonth = s; i < numProcessors; startMonth = startMonth+s, i++ ){	//Send out the data
+			printf("Master -> Sending out to CPU %d\n", i);
+			rc = MPI_Send(&startMonth,	//number of the starting month
+					s, 			//amount of months to process
+					MPI_INT, 	//data type
+					i, 			//Who should be receiving the data
+					i,			//Tag
+					MPI_COMM_WORLD);	//Send the data to the processors
+			if (rc != MPI_SUCCESS){
+				printf("%d: Send failure on round %d\n", myrank, i);
+			}
+			printf("Data Sent Success!\n");
+		}
+	}
+	else{	//Slaves receive from Master
+		for (int i = 1; i < numProcessors; i++){
+			printf("Node %d Receiving\n", i);
+			rc = MPI_Recv(&startMonth, 		//Your starting Month
+					s, 						//How many months your getting
+					MPI_INT, 				//type of data received
+					MASTER, 				//From where
+					i, 						//Tag
+					MPI_COMM_WORLD, 		//To which group of processors
+					&status);				//Success or Failure
+			printf("Processor %d starting on month %d for %d months\n", i, startMonth, s);	//Debug Message
+
+			if (rc != MPI_SUCCESS){
+				printf("Processor %d: Receive failure on round %d\n", (int)myrank, i);
+			}
+		}
+	}
 
 				/*	PHASE II	*/
 	//FOR TESTING PURPOSES ONLY
 	//MASTER
-	cData->durationofMonths = 2;
-	cData->startMonth = 0;
+//	cData->durationofMonths = 2;
+//	cData->startMonth = 0;
 
 	printf("Begin Computing\n");
 
@@ -379,7 +379,7 @@ int main(int argc, char **argv){
 	cData->outageCauseName = argv[2];			//Assign the outage cause
 	cData->weatherFactorName = argv[3];			//Assign the weather Factor
 	cData->startMonth = startMonth;				//Assign the start month
-	//cData->durationofMonths = s;				//Assign the Number of Months to Compute
+	cData->durationofMonths = s;				//Assign the Number of Months to Compute
 
 	weatherFile = findWeatherFile(cData->LOA);	//open the file to Read, Using "rb" for non-text files
 
@@ -426,39 +426,39 @@ int main(int argc, char **argv){
 			/*	PHASE III	*/
 	int finished = 1;
 
-//	if (myrank == MASTER){
-//		//Master Receives the data back from the Slaves
-//		printf("MASTER is receiving\n");
-//		for(int i = 1; i < numProcessors; i++){
-//			rc = MPI_Recv(&finished, 		//complete flag
-//					1, 						//amount of data
-//					MPI_INT, 				//type of data received
-//					i, 						//From where
-//					MASTER, 				//Which processor you are
-//					MPI_COMM_WORLD, 		//To which processors
-//					&status);				//Success or Failure
-//			if (rc != MPI_SUCCESS){
-//				printf("%d: Receive failure on round %d\n", myrank, i);
-//			}
-//			printf("MASTER Received from CPU %d\n", myrank);
-//		}
-//		printf("MASTER is done Receiving\n");
-//	}
-//	else{
-//		for(int i = 1; i < numProcessors; i++){
-//			printf("CPU %d is Sending to MASTER!\n", myrank);
-//			rc = MPI_Send(&finished,	//number of the starting month
-//				1,			 			//amount of data
-//				MPI_INT, 				//data type
-//				MASTER, 				//Who should be receiving the data
-//				i,						//Tag
-//				MPI_COMM_WORLD);		//Send the data to the processors
-//			if (rc != MPI_SUCCESS){
-//				printf("%d: Send failure on round %d\n", myrank, i);
-//			}
-//		}
-//		printf("CPU %d is done Sending\n", myrank);
-//	}
+	if (myrank == MASTER){
+		//Master Receives the data back from the Slaves
+		printf("MASTER is receiving\n");
+		for(int i = 1; i < numProcessors; i++){
+			rc = MPI_Recv(&finished, 		//complete flag
+					1, 						//amount of data
+					MPI_INT, 				//type of data received
+					i, 						//From where
+					MASTER, 				//Which processor you are
+					MPI_COMM_WORLD, 		//To which processors
+					&status);				//Success or Failure
+			if (rc != MPI_SUCCESS){
+				printf("%d: Receive failure on round %d\n", myrank, i);
+			}
+			printf("MASTER Received from CPU %d\n", myrank);
+		}
+		printf("MASTER is done Receiving\n");
+	}
+	else{
+		for(int i = 1; i < numProcessors; i++){
+			printf("CPU %d is Sending to MASTER!\n", myrank);
+			rc = MPI_Send(&finished,	//number of the starting month
+				1,			 			//amount of data
+				MPI_INT, 				//data type
+				MASTER, 				//Who should be receiving the data
+				i,						//Tag
+				MPI_COMM_WORLD);		//Send the data to the processors
+			if (rc != MPI_SUCCESS){
+				printf("%d: Send failure on round %d\n", myrank, i);
+			}
+		}
+		printf("CPU %d is done Sending\n", myrank);
+	}
 
 	//Close Files
 	fclose(weatherFile);
