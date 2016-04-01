@@ -19,8 +19,9 @@
 #define HOURS 24 	//hours in a day
 #define MASTER 0	//The master processor number
 #define MONTHS 12	//number of months
-#define OUTTAGE_FILE  "./Data/2012 Outage Data FORMATED.csv"
-
+#define OUTTAGE_FILE_2012  "./Data/2012 Outage Data FORMATED.csv"
+#define OUTTAGE_FILE_2013  "./Data/2013 Outage Data.csv"
+#define OUTTAGE_FILE_2014  "./Data/2014 Outage Data.csv"
 
 struct Correlation{				//Structure for Computing the Pearson Correlation algorithm
 	int outtageDataX[12][31];				//add the data to each element in the array
