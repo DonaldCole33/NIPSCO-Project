@@ -8,8 +8,6 @@
 #ifndef DATA_H_
 #define DATA_H_
 
-#include "hash.h"
-
 #define maxCauseIndex 366
 #define maxLOAIndex 161
 #define maxNumofLOA 9
@@ -28,8 +26,6 @@ struct Correlation{				//Structure for Computing the Pearson Correlation algorit
 	int *outtageDataX;				//add the data to each element in the array
 	double *weatherDataY;			//add a one for each hour not found
 	struct tm dateArray[3000];			//the dates that are valid we need to find in weather data
-	hashtable_t* weatherHashTable;		//hold the weather data
-	hashtable_t * outageHashTable;		//hold the outage data
 	int startMonth;						//The start month
 	int durationofMonths;				//amount of months we are looking at
 	int LOA;							//integer of the LOA
