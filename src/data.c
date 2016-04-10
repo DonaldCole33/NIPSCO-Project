@@ -16,33 +16,41 @@
 #define GaryLOA  150
 #define ValpoLOA  50
 
-const char* GOSHEN_WEATHER_FILE = "./Data/30407_Goshen__Hourly_2012.csv";
-const char* GARY_WEATHER_FILE = "./Data/30437_Gary__Hourly_2012.csv";
-const char* VALPO_WEATHER_FILE = "./Data/30407_Goshen__Hourly_2012.csv";
+const char* GOSHEN_WEATHER_FILE_2012 = "./Data/Goshen_Weather_2012.csv";
+const char* GOSHEN_WEATHER_FILE_2013 = "./Data/Goshen_Weather_2013.csv";
+const char* GOSHEN_WEATHER_FILE_2014 = "./Data/Goshen_Weather_2014.csv";
+
+const char* GARY_WEATHER_FILE_2012 = "./Data/Gary_Weather_2012.csv";
+const char* GARY_WEATHER_FILE_2013 = "./Data/Gary_Weather_2013.csv";
+const char* GARY_WEATHER_FILE_2014 = "./Data/Gary_Weather_2014.csv";
+
+const char* VALPO_WEATHER_FILE_2012 = "./Data/Valpo_Weather_2012.csv";
+const char* VALPO_WEATHER_FILE_2013 = "./Data/Valpo_Weather_2013.csv";
+const char* VALPO_WEATHER_FILE_2014 = "./Data/Valpo_Weather_2013.csv";
 
 FILE * findWeatherFile (int LOA){
 	FILE *weatherFile;
 
 	if (LOA == GoshenLOA){
-		weatherFile = fopen(GOSHEN_WEATHER_FILE, "rb");
+		weatherFile = fopen(GOSHEN_WEATHER_FILE_2012, "rb");
 		if (weatherFile == NULL) {
-				fprintf(stderr, "Failed to open file %s for LOA %d: %s\n", GOSHEN_WEATHER_FILE,LOA,strerror(errno));
+				fprintf(stderr, "Failed to open file %s for LOA %d: %s\n", GOSHEN_WEATHER_FILE_2012,LOA,strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 		return weatherFile;
 	}
 	else if (LOA == GaryLOA){
-		weatherFile = fopen(GARY_WEATHER_FILE, "rb");
+		weatherFile = fopen(GARY_WEATHER_FILE_2012, "rb");
 		if (weatherFile == NULL) {
-				fprintf(stderr, "Failed to open file %s for LOA %d: %s\n", GARY_WEATHER_FILE,LOA,strerror(errno));
+				fprintf(stderr, "Failed to open file %s for LOA %d: %s\n", GARY_WEATHER_FILE_2012,LOA,strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 		return weatherFile;
 	}
 	else if (LOA == ValpoLOA){
-		weatherFile = fopen(VALPO_WEATHER_FILE, "rb");
+		weatherFile = fopen(VALPO_WEATHER_FILE_2012, "rb");
 		if (weatherFile == NULL) {
-				fprintf(stderr, "Failed to open file %s for LOA %d: %s\n", VALPO_WEATHER_FILE,LOA,strerror(errno));
+				fprintf(stderr, "Failed to open file %s for LOA %d: %s\n", VALPO_WEATHER_FILE_2012,LOA,strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 		return weatherFile;
