@@ -343,25 +343,21 @@ int main(int argc, char **argv){
 				/*	PHASE II	*/
 	//FOR TESTING PURPOSES ONLY
 	//MASTER
-	cData->durationofMonths = 2;
-	cData->startMonth = 0;
+//	cData->durationofMonths = 2;
+//	cData->startMonth = 0;
 
 	printf("Begin Computing\n");
 
 	checkArgs(argc, argv);						//Confirm the args are correct
-	cData->LOA = atoi(argv[1]);					//assign the LOA
-	cData->outageCauseName = argv[2];			//Assign the outage cause
-	cData->weatherFactorName = argv[3];			//Assign the weather Factor
-//	cData->startMonth = startMonth;				//Assign the start month
-//	cData->durationofMonths = s;				//Assign the Number of Months to Compute
+	cData->year = atoi(argv[1]);				//assign the Year
+	cData->LOA = atoi(argv[2]);					//assign the LOA
+	cData->outageCauseName = argv[3];			//Assign the outage cause
+	cData->weatherFactorName = argv[4];			//Assign the weather Factor
+	cData->startMonth = startMonth;				//Assign the start month
+	cData->durationofMonths = s;				//Assign the Number of Months to Compute
 
-	weatherFile = findWeatherFile(cData->LOA);	//open the file to Read, Using "rb" for non-text files
-
-	outtageFile = fopen(OUTTAGE_FILE_2012, "rb");
-	if (outtageFile == NULL) {
-		fprintf(stderr, "Failed to open file %s: %s\n", OUTTAGE_FILE_2012, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	weatherFile = findWeatherFile(cData->year, cData->LOA);	//open the file to Read, Using "rb" for non-text files
+	outtageFile = findOutageFile(cData->year);
 
 	//reading and parsing the weather Data File for Data
 	while ((i=fread(buf, 1, 1024, outtageFile)) > 0) {	//For each line
@@ -445,14 +441,14 @@ int main(int argc, char **argv){
 
 void checkArgs(int argc, char* argv[]){
 
-	//Need at least 3 arguments
-	if (argc < 4) {
-		fprintf(stderr, "Error: Need the LOA, Outage Cause, and Weather Factor.\n");
+	//Need at least 4 arguments
+	if (argc < 5) {
+		fprintf(stderr, "Error: Need the Year, LOA, Outage Cause, and Weather Factor.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	for (int i = 0; i < numOfCauses; i++){
-		if (strcmp(argv[2], causeArray[i]) == 0){
+		if (strcmp(argv[3], causeArray[i]) == 0){
 			fprintf(stderr, "Found a Valid Cause.\n");
 			return;
 		}

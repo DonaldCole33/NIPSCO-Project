@@ -17,9 +17,7 @@
 #define HOURS 24 	//hours in a day
 #define MASTER 0	//The master processor number
 #define MONTHS 12	//number of months
-#define OUTTAGE_FILE_2012  "./Data/2012 Outage Data FORMATED.csv"
-#define OUTTAGE_FILE_2013  "./Data/2013 Outage Data.csv"
-#define OUTTAGE_FILE_2014  "./Data/2014 Outage Data.csv"
+
 
 
 struct Correlation{				//Structure for Computing the Pearson Correlation algorithm
@@ -28,6 +26,7 @@ struct Correlation{				//Structure for Computing the Pearson Correlation algorit
 	struct tm dateArray[3000];			//the dates that are valid we need to find in weather data
 	int startMonth;						//The start month
 	int durationofMonths;				//amount of months we are looking at
+	int year;
 	int LOA;							//integer of the LOA
 	const char* weatherFactorName;		//name of the weather factor we are correlating
 	const char* outageCauseName;		//Name of the Outage we are correlating
@@ -84,7 +83,8 @@ char *causeArray[] = {
 "97 - SUBSTATION BUS",
 "98 - SUBSTATION RELAY"};
 
-FILE* findWeatherFile (int LOA);					//Will find the Correct WeatherFile to open
+FILE* findWeatherFile (int year, int LOA);					//Will find the Correct WeatherFile to open
+FILE* findOutageFile (int year);
 
 void ComputeCorrelation(struct Correlation* cData);
 
