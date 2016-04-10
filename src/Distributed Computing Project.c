@@ -360,19 +360,19 @@ int main(int argc, char **argv){
 			printf("Error on outage columns\n");
 		}
 	}
-
-	for (int i = 0; i < 12; i++){
-		for (int j = 0; j < 31; j++){
-			cData->outtageDataX[i][j] = 0;
-			cData->weatherDataY[i][j] = 0;
-		}
-	}
-
-	for (int i = 0; i < 12; i++){
-		for (int j = 0; j < 31; j++){
-			printf("%d, %d\n", cData->outtageDataX[i][j], (int)cData->weatherDataY[i][j]);
-		}
-	}
+//
+//	for (int i = 0; i < 12; i++){
+//		for (int j = 0; j < 31; j++){
+//			cData->outtageDataX[i][j] = 0;
+//			cData->weatherDataY[i][j] = 0;
+//		}
+//	}
+//
+//	for (int i = 0; i < 12; i++){
+//		for (int j = 0; j < 31; j++){
+//			printf("%d, %d\n", cData->outtageDataX[i][j], (int)cData->weatherDataY[i][j]);
+//		}
+//	}
 
 	/*	MPI INITS	*/
 	int myrank,
@@ -486,38 +486,37 @@ int main(int argc, char **argv){
 			/*	PHASE III	*/
 	int finished = 1;
 
-	if (myrank == MASTER){
-		//Master Receives the data back from the Slaves
-		printf("MASTER is receiving\n");
-		for(int i = 1; i < numProcessors; i++){
-			rc = MPI_Recv(&finished, 		//complete flag
-					1, 						//amount of data
-					MPI_INT, 				//type of data received
-					i, 						//From where
-					MASTER, 				//Which processor you are
-					MPI_COMM_WORLD, 		//To which processors
-					&status);				//Success or Failure
-			if (rc != MPI_SUCCESS){
-				printf("%d: Receive failure on round %d\n", myrank, i);
-			}
-			printf("MASTER Received from CPU %d\n", myrank);
-		}
-		printf("MASTER is done Receiving\n");
-	}
-	else{
-		for(int i = 1; i < numProcessors; i++){
-			printf("CPU %d is Sending to MASTER!\n", myrank);
-			rc = MPI_Send(&finished,	//number of the starting month
-				1,			 			//amount of data
+	if (myrank != MASTER){		//Slaves Sending Back info
+		int done = 1;
+		printf("CPU %d is Sending to Master.\n", myrank);
+		rc = MPI_Send(&finished, 		//void* data
+				done, 					//int count
 				MPI_INT, 				//data type
-				MASTER, 				//Who should be receiving the data
-				i,						//Tag
-				MPI_COMM_WORLD);		//Send the data to the processors
-			if (rc != MPI_SUCCESS){
-				printf("%d: Send failure on round %d\n", myrank, i);
-			}
+				MASTER, 				//int destination
+				0, 						//int Tag
+				MPI_COMM_WORLD); 		//MPI_COMM Communicator
+		if (rc != MPI_SUCCESS){
+			printf("CPU %d: Send failure to Master.\n", myrank);
 		}
-		printf("CPU %d is done Sending\n", myrank);
+
+		printf("CPU %d is done Sending to Master.\n", myrank);
+	}
+	else{	//Master Receives data from slaves
+		for(int i = 1; i < numProcessors; i++){
+			printf("MASTER is receiving from CPU %d!\n", i);
+			rc = MPI_Recv(&finished, 				//void* data
+							1, 						//int count
+							MPI_INT, 				//data type
+							i,		 				//int destination
+							0, 						//int Tag
+							MPI_COMM_WORLD, 		//MPI_COMM Communicator
+							&status);				//MPI_STATUS* status
+			if (rc != MPI_SUCCESS){
+				printf("%d: Send failure on round %d.\n", myrank, i);
+			}
+			printf("MASTER Received from CPU %d.\n", i);
+		}
+		printf("MASTER is done Receiving.\n");
 	}
 
 	MPI_Finalize();
