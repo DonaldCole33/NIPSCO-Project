@@ -25,7 +25,7 @@ struct Correlation{				//Structure for Computing the Pearson Correlation algorit
 //	double weatherDataY[12][31];			//add a one for each hour not found
 	int **outtageDataX;
 	double **weatherDataY;
-	struct tm dateArray[3000];			//the dates that are valid we need to find in weather data
+	struct tm *dateArray[3000];			//the dates that are valid we need to find in weather data
 	int startMonth;						//The start month
 	int durationofMonths;				//amount of months we are looking at
 	int year;

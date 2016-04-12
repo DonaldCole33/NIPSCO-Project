@@ -113,10 +113,9 @@ FILE * findWeatherFile (int year, int LOA){
 			return weatherFile;
 		}
 	}
-	else{
-		fprintf(stderr, "Failed to find the file for your LOA: %d and Year: %d.\n", LOA, year);
-		exit(EXIT_FAILURE);
-	}
+
+	fprintf(stderr, "Failed to find the file for your LOA: %d and Year: %d.\n", LOA, year);
+	exit(EXIT_FAILURE);
 }
 
 FILE* findOutageFile(int year){
