@@ -25,13 +25,14 @@ struct Correlation{				//Structure for Computing the Pearson Correlation algorit
 //	double weatherDataY[12][31];			//add a one for each hour not found
 	int **outtageDataX;
 	double **weatherDataY;
-	struct tm *dateArray[3000];			//the dates that are valid we need to find in weather data
+	struct tm *dateArray[1000];			//the dates that are valid we need to find in weather data
 	int startMonth;						//The start month
 	int durationofMonths;				//amount of months we are looking at
 	int year;
 	int LOA;							//integer of the LOA
-	const char* weatherFactorName;		//name of the weather factor we are correlating
-	const char* outageCauseName;		//Name of the Outage we are correlating
+	char* wf;
+	char* weatherFactorName;		//name of the weather factor we are correlating
+	char* outageCauseName;		//Name of the Outage we are correlating
 
 };
 

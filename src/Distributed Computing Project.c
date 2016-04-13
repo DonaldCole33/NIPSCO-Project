@@ -23,7 +23,6 @@
 static int CURRENT_COLUMN_NUM = 0;
 static int CURRENT_OUTTAGE_ROW_NUM = 0;
 static int CURRENT_WEATHER_ROW_NUM = 0;
-static int currentDataColumn = -1;
 static int sampleSize = 0;
 static int maxSample;
 static int foundFlag = 0;
@@ -169,9 +168,14 @@ int CheckDate(struct tm* date){		//Return 0 for invalid date, 1 for valid date
 
 //prints each data set
 void cb1 (void *src, size_t len, void *cData) {
+	static int 	monthColumn,
+				dayColumn,
+				hourColumn;
+	static int weatherDataColumn = -1;
 	static int monthFlag, dayFlag, hourFlag = 0;		//flags for when we have found the correct dates
 	char buf[100];			//String buffer
 	char* cellData;
+	const struct tm *datetofind;
 
 	if (len != 0){
 		len = csv_write(buf, 100, src, len);
@@ -181,28 +185,28 @@ void cb1 (void *src, size_t len, void *cData) {
 		cellData = "\0";
 	}
 
-
 	struct Correlation *mycData = (struct Correlation*)cData;				//convert the cData pointer
-	const struct tm *datetofind = mycData->dateArray[sampleSize-1];
+
+	if (sampleSize > 0){
+		datetofind = mycData->dateArray[sampleSize - 1];
+	}
+
 //	printf("%s\n", cellData);	//Print the data to Screen
 
-	if (CURRENT_WEATHER_ROW_NUM > 0
-			&& sampleSize > 0
-			&& CURRENT_COLUMN_NUM > 0
-			&& CURRENT_COLUMN_NUM < 4){	//to access the correct Date Data
+	if (CURRENT_WEATHER_ROW_NUM > 0){	//to access the correct Date Data
 
-		if (CURRENT_COLUMN_NUM == 1 &&
+		if (CURRENT_COLUMN_NUM == monthColumn &&
 				datetofind->tm_mon == (atoi(cellData)-1) &&
 				monthFlag != 1){		//The Month Column
 			monthFlag = 1;
 		}
-		else if (CURRENT_COLUMN_NUM == 2 &&
+		else if (CURRENT_COLUMN_NUM == dayColumn &&
 				datetofind->tm_mday == atoi(cellData) &&
 				monthFlag &&
 				dayFlag != 1){		//The Month Column
 			dayFlag = 1;
 		}
-		else if (CURRENT_COLUMN_NUM == 3 &&
+		else if (CURRENT_COLUMN_NUM == hourColumn &&
 				datetofind->tm_hour == atoi(cellData)
 				&& monthFlag &&
 				dayFlag
@@ -210,16 +214,23 @@ void cb1 (void *src, size_t len, void *cData) {
 			hourFlag = 1;
 		}
 	}
-//	else if (CURRENT_WEATHER_ROW_NUM == 0){
-		//We need to first find the column that the weather factor is in
-	if (currentDataColumn == -1 && strncmp(mycData->weatherFactorName, cellData, len-2 ) == 0){
-		currentDataColumn = CURRENT_COLUMN_NUM;		//found the column number
-//		}
+	else{		//We need to first find the column that the LOA is in
+		if (weatherDataColumn == -1 && (strcmp(mycData->weatherFactorName, cellData) == 0)){
+			weatherDataColumn = CURRENT_COLUMN_NUM;		//found the column number
+		}
+		else if (strcmp("Month Local", cellData) == 0){
+			monthColumn = CURRENT_COLUMN_NUM;		//found the column number that will contain the LOA
+		}
+		else if (strcmp("Day Local", cellData) == 0){
+			dayColumn = CURRENT_COLUMN_NUM;
+		}
+		else if (strcmp("Hour Local", cellData) == 0){
+			hourColumn = CURRENT_COLUMN_NUM;
+		}
 	}
 
-	if (monthFlag && dayFlag && hourFlag && CURRENT_COLUMN_NUM == currentDataColumn){	//found data
+	if (monthFlag && dayFlag && hourFlag && CURRENT_COLUMN_NUM == weatherDataColumn){	//found data
 		if (strcmp(cellData, "") == 0){
-		//if (strncmp("", cellData, 1) == 0){		//Missing data
 			printf("The data is missing and not available.\n");
 			mycData->outtageDataX[datetofind->tm_mon][datetofind->tm_mday - 1] -= 1;		//Remove the outage data
 			--sampleSize;					//Decrease the sample size, data done
@@ -227,19 +238,15 @@ void cb1 (void *src, size_t len, void *cData) {
 			monthFlag = 0;					//reset flags
 			dayFlag = 0;
 			hourFlag = 0;
-			//CURRENT_WEATHER_ROW_NUM = 0;	//reset the row number
 		}
 		else{	//Output the Found data
 			printf("SS = %d, Data = %s\n", sampleSize - 1, cellData);					//print the data found
-			//OLD WAY -> mycData->weatherDataY[--sampleSize] = atof(cellData);		//assign the data as float
-			//NEW WAY
 			mycData->weatherDataY[datetofind->tm_mon][datetofind->tm_mday - 1] += atof(cellData);			//add the amount of Data
 			--sampleSize;					//Decrease the sample size, data done
 			foundFlag = 0;					//reset the found flag
 			monthFlag = 0;					//reset flags
 			dayFlag = 0;
 			hourFlag = 0;
-			//CURRENT_WEATHER_ROW_NUM = 0;	//reset the row number
 		}
 	}
 
@@ -247,7 +254,8 @@ void cb1 (void *src, size_t len, void *cData) {
 }
 
 //prints the end of line char
-void cb2 (int c, void *weatherFactor) {
+void cb2 () {
+//	printf("Row = %d\n", CURRENT_WEATHER_ROW_NUM);
 	CURRENT_COLUMN_NUM = 0;			//reset
 	CURRENT_WEATHER_ROW_NUM++;		//increase
 }
@@ -324,13 +332,13 @@ void cb3 (void *src, size_t len, void *cData) {
 		if (CheckDate(&date)){							//Do some work and add the date to get the weather data
 			//Need to hash the data found
 			printf("%d Row=%d LOA=%d, DATE=%s\n", sampleSize, CURRENT_OUTTAGE_ROW_NUM, currentLOA, myCellData);
-			struct tm* p = (struct tm*)malloc(sizeof(struct tm*));
-			memcpy (p, &date, sizeof(date));
+			//struct tm* p = (struct tm*)malloc(sizeof(struct tm*));
+			//memcpy (p, &date, sizeof(date));
 			//memcpy(mycData->dateArray[sampleSize++], p, sizeof(struct tm));	//This is the date we need to match in the weather data
-			mycData->dateArray[sampleSize++] = p;
-			//copyDate(mycData->dateArray[sampleSize], &date);
+			//mycData->dateArray[sampleSize++] = p;
+			copyDate(mycData->dateArray[sampleSize++], &date);
 
-			mycData->outtageDataX[date.tm_mon][date.tm_mday]++;	//number of outtages per month
+			mycData->outtageDataX[date.tm_mon][date.tm_mday-1]++;	//number of outtages per month
 
 			foundFlag = 1;						//set the found flag to exit the outtage data and look for the weather data
 			validDateFlag = 0;					//reset flag
@@ -350,12 +358,10 @@ void cb3 (void *src, size_t len, void *cData) {
 }
 
 //prints the end of line char
-void cb4 (int c, void *weatherFactor) {
+void cb4 () {
 //	printf("%d\n", CURRENT_OUTTAGE_ROW_NUM);
 	CURRENT_COLUMN_NUM = 0;
-	CURRENT_OUTTAGE_ROW_NUM++;			//Never reset
-
-	//printf("\n");
+	CURRENT_OUTTAGE_ROW_NUM++;			//Never resets
 }
 
 /* This program takes a minimum of 3 arguments
@@ -384,7 +390,7 @@ int main(int argc, char **argv){
 	cData->weatherDataY = (double**) malloc(r * sizeof(double*));
 	cData->outtageDataX = (int**) malloc(r * sizeof(int*));
 
-	for (int i = 0; i < 3000; i++){
+	for (int i = 0; i < 1000; i++){
 		cData->dateArray[i] = (struct tm*)malloc(sizeof(struct tm*));
 	}
 
@@ -472,7 +478,7 @@ int main(int argc, char **argv){
 				/*	PHASE II	*/
 	//FOR TESTING PURPOSES ONLY
 	//MASTER
-	cData->durationofMonths = 2;
+	cData->durationofMonths = 12;
 	cData->startMonth = 0;
 
 	printf("Begin Computing\n");
@@ -501,7 +507,8 @@ int main(int argc, char **argv){
 	printf("DOOOOOOOOOONE\n");
 	maxSample = sampleSize;		//Set the Max size
 	CURRENT_COLUMN_NUM = 0;		//reset column number
-	while(sampleSize != 0){
+	while(sampleSize > 0){
+		printf("sampleSize = %d\n", sampleSize);
 		while((i = fread(buf, 1, 1024, weatherFile)) > 0){	//find the weather data of the outtage found
 			if (csv_parse(&wf, buf, i, cb1, cb2, cData) != i){
 				fprintf(stderr, "Error parsing file: %s\n", csv_strerror(csv_error(&wf)));
@@ -520,7 +527,7 @@ int main(int argc, char **argv){
 
 	csv_fini(&wf, cb1, cb2, cData);
 	csv_free(&wf);
-	csv_fini(&of, cb1, cb2, cData);
+	csv_fini(&of, cb3, cb4, cData);
 	csv_free(&of);
 
 			/*	PHASE III	*/
@@ -561,9 +568,24 @@ int main(int argc, char **argv){
 //
 //	MPI_Finalize();
 
+
 	//Close Files
 	fclose(weatherFile);
 	fclose(outtageFile);
+
+	//Free Data Structures
+	for (int i = 0; i < 12; i++){
+		free(cData->outtageDataX[i]);
+		free(cData->weatherDataY[i]);
+	}
+
+	free(cData->dateArray);
+	free(cData->outtageDataX);
+	free(cData->weatherDataY);
+	free(cData);
+
+	printf("**Program Completed**\n");
+
 	return EXIT_SUCCESS;
 }
 
