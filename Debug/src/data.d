@@ -1,1 +1,1 @@
-src/data.d: ../src/data.c
+src/data.o: ../src/data.c

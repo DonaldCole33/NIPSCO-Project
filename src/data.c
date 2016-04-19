@@ -28,7 +28,7 @@ const char* VALPO_WEATHER_FILE_2012 = "./Data/Valpo_Weather_2012.csv";
 const char* VALPO_WEATHER_FILE_2013 = "./Data/Valpo_Weather_2013.csv";
 const char* VALPO_WEATHER_FILE_2014 = "./Data/Valpo_Weather_2013.csv";
 
-const char* OUTTAGE_FILE_2012 = "./Data/2012 Outage Data FORMATED.csv";
+const char* OUTTAGE_FILE_2012 = "./Data/2012 Outage Data.csv";
 const char* OUTTAGE_FILE_2013 = "./Data/2013 Outage Data.csv";
 const char* OUTTAGE_FILE_2014 = "./Data/2014 Outage Data.csv";
 

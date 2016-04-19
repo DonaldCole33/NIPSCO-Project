@@ -1,1 +1,1 @@
-src/hash.d: ../src/hash.c
+src/hash.o: ../src/hash.c
