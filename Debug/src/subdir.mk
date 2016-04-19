@@ -6,17 +6,26 @@
 C_SRCS += \
 ../src/Distributed\ Computing\ Project.c \
 ../src/data.c \
-../src/hash.c 
+../src/hash.c \
+../src/libcsv.c 
+
+O_SRCS += \
+../src/Distributed\ Computing\ Project.o \
+../src/data.o \
+../src/hash.o \
+../src/libcsv.o 
 
 OBJS += \
 ./src/Distributed\ Computing\ Project.o \
 ./src/data.o \
-./src/hash.o 
+./src/hash.o \
+./src/libcsv.o 
 
 C_DEPS += \
 ./src/Distributed\ Computing\ Project.d \
 ./src/data.d \
-./src/hash.d 
+./src/hash.d \
+./src/libcsv.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
