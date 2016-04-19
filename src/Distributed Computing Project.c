@@ -254,8 +254,8 @@ void cb1 (void *src, size_t len, void *cData) {
 }
 
 //prints the end of line char
-void cb2 () {
-//	printf("Row = %d\n", CURRENT_WEATHER_ROW_NUM);
+void cb2 (int c, void* cData) {
+	printf("wRow = %d\n", CURRENT_WEATHER_ROW_NUM);
 	CURRENT_COLUMN_NUM = 0;			//reset
 	CURRENT_WEATHER_ROW_NUM++;		//increase
 }
@@ -266,100 +266,101 @@ void cb3 (void *src, size_t len, void *cData) {
 				currentTimeColumn,
 				currentDurationColumn,
 				currentCauseColumn;
-	struct tm date;						//for parsing date information
+	static struct tm date;						//for parsing date information
 	static int validRowFlag = 0;		//for when you are on a correct row
 	static int validDateFlag = 0;		//found a date of an outtage
 	static int validCauseFlag = 0;		//found a cause in the current row
-	int currentLOA;
+	static int currentLOA;
 	char buf[50];						//String Buffer
 	char* myCellData;
 
-	if (len != 0){
-		len = csv_write(buf, 50, src, len);						//Copy to Buffer for easy parsing & string Management
-		myCellData = strtok(buf, "\"");					//Get rid of the Quotes & add an /0 char
-	}
-	else{
-		myCellData = "\0";
-	}
-
-	struct Correlation *mycData = (struct Correlation*)cData;				//Convert the Pointer
-	int myMonth = mycData->startMonth;										//Track the month
-	int durationofMonths = mycData->durationofMonths;						//Track the amount of months
+//	if (len != 0){
+//		len = csv_write(buf, 50, src, len);						//Copy to Buffer for easy parsing & string Management
+//		myCellData = strtok(buf, "\"");					//Get rid of the Quotes & add an /0 char
+//	}
+//	else{
+//		myCellData = "\0";
+//	}
+//
+//	struct Correlation *mycData = (struct Correlation*)cData;				//Convert the Pointer
+//	int myMonth = mycData->startMonth;										//Track the month
+//	int durationofMonths = mycData->durationofMonths;						//Track the amount of months
 
 //	printf("Data :%s\n", myCellData);	//Print the data to Screen
 
-	if (CURRENT_OUTTAGE_ROW_NUM > 0){						//to access the correct Data and not the header
-		if (CURRENT_COLUMN_NUM == currentLOAColumn){		//Checking the LOA Column
-			if(mycData->LOA == atoi(myCellData)){			//Check for the correct LOA
-				currentLOA = atoi(myCellData);
-				validRowFlag = 1;							//We are on the correct LOA Row
-			}
-		}
-		//Now we are on the correct row and have found an outtage, now we need to get the date so
-		//we can get the matching weather data
-		else if(currentTimeColumn == CURRENT_COLUMN_NUM && validRowFlag){	//Get the Date
-			strptime(myCellData, "%m/%d/%y %H:%M", &date);
-			validDateFlag = 1;
-		}
-		else if(currentCauseColumn == CURRENT_COLUMN_NUM && validRowFlag){	//Get the Cause
-			if (strcmp(mycData->outageCauseName, myCellData) == 0){			//Found the Cause
-				validCauseFlag = 1;
-			}
-		}
-	}
-	else{		//We need to first find the column that the LOA is in
-		if (strcmp("LOA", myCellData) == 0){
-			currentLOAColumn = CURRENT_COLUMN_NUM;		//found the column number that will contain the LOA
-		}
-		else if (strcmp("REPORTED", myCellData) == 0){
-			currentTimeColumn = CURRENT_COLUMN_NUM;
-		}
-		else if (strcmp("CAUSE", myCellData) == 0){
-			currentCauseColumn = CURRENT_COLUMN_NUM;
-		}
-		else if (strcmp("DURATION_HRS", myCellData) == 0){
-			currentDurationColumn = CURRENT_COLUMN_NUM;
-		}
-	}
+//	if (CURRENT_OUTTAGE_ROW_NUM > 0){						//to access the correct Data and not the header
+//		if (CURRENT_COLUMN_NUM == currentLOAColumn){		//Checking the LOA Column
+//			if(mycData->LOA == atoi(myCellData)){			//Check for the correct LOA
+//				currentLOA = atoi(myCellData);
+//				validRowFlag = 1;							//We are on the correct LOA Row
+//			}
+//		}
+//		//Now we are on the correct row and have found an outtage, now we need to get the date so
+//		//we can get the matching weather data
+//		else if(currentTimeColumn == CURRENT_COLUMN_NUM && validRowFlag){	//Get the Date
+//			strptime(myCellData, "%m/%d/%y %H:%M", &date);
+//			validDateFlag = 1;
+//		}
+//		else if(currentCauseColumn == CURRENT_COLUMN_NUM && validRowFlag){	//Get the Cause
+//			if (strcmp(mycData->outageCauseName, myCellData) == 0){			//Found the Cause
+//				validCauseFlag = 1;
+//			}
+//		}
+//	}
+//	else{		//We need to first find the column that the LOA is in
+//		if (strcmp("LOA", myCellData) == 0){
+//			currentLOAColumn = CURRENT_COLUMN_NUM;		//found the column number that will contain the LOA
+//		}
+//		else if (strcmp("REPORTED", myCellData) == 0){
+//			currentTimeColumn = CURRENT_COLUMN_NUM;
+//		}
+//		else if (strcmp("CAUSE", myCellData) == 0){
+//			currentCauseColumn = CURRENT_COLUMN_NUM;
+//		}
+//		else if (strcmp("DURATION_HRS", myCellData) == 0){
+//			currentDurationColumn = CURRENT_COLUMN_NUM;
+//		}
+//	}
+//
+//	if (validDateFlag &&
+//			validCauseFlag &&
+//			validRowFlag &&
+//			date.tm_mon >= myMonth - 1 &&
+//			date.tm_mon < myMonth + durationofMonths ){
+//		printf("**************\n");
+//			//and it is not a significant Date
+//		if (CheckDate(&date)){							//Do some work and add the date to get the weather data
+//			//Need to hash the data found
+//			strftime(buf, 50, "%Y:%m:%d %H", &date);
+//			printf("%d LOA=%d, DATE=%s\n", sampleSize, currentLOA, buf);
+//			//struct tm* p = (struct tm*)malloc(sizeof(struct tm*));
+//			//memcpy (p, &date, sizeof(date));
+//			//memcpy(mycData->dateArray[sampleSize++], p, sizeof(struct tm));	//This is the date we need to match in the weather data
+//			//mycData->dateArray[sampleSize++] = p;
+//			copyDate(mycData->dateArray[sampleSize++], &date);
+//
+//			mycData->outtageDataX[date.tm_mon][date.tm_mday-1]++;	//number of outtages per month
+//
+//			foundFlag = 1;						//set the found flag to exit the outtage data and look for the weather data
+//			validDateFlag = 0;					//reset flag
+//			validRowFlag = 0;					//Reset Flag
+//			validCauseFlag = 0;
+//		}
+//		else{		//found Invalid Date, reset flags
+//			validDateFlag = 0;					//reset flag
+//			validRowFlag = 0;					//Reset Flag
+//			validCauseFlag = 0;
+//
+//		}
+//	}
 
-	if (validDateFlag &&
-			validCauseFlag &&
-			validRowFlag &&
-			date.tm_mon >= myMonth - 1 &&
-			date.tm_mon < myMonth + durationofMonths ){
-		printf("**************\n");
-			//and it is not a significant Date
-		if (CheckDate(&date)){							//Do some work and add the date to get the weather data
-			//Need to hash the data found
-			printf("%d Row=%d LOA=%d, DATE=%s\n", sampleSize, CURRENT_OUTTAGE_ROW_NUM, currentLOA, myCellData);
-			//struct tm* p = (struct tm*)malloc(sizeof(struct tm*));
-			//memcpy (p, &date, sizeof(date));
-			//memcpy(mycData->dateArray[sampleSize++], p, sizeof(struct tm));	//This is the date we need to match in the weather data
-			//mycData->dateArray[sampleSize++] = p;
-			copyDate(mycData->dateArray[sampleSize++], &date);
-
-			mycData->outtageDataX[date.tm_mon][date.tm_mday-1]++;	//number of outtages per month
-
-			foundFlag = 1;						//set the found flag to exit the outtage data and look for the weather data
-			validDateFlag = 0;					//reset flag
-			validRowFlag = 0;					//Reset Flag
-			validCauseFlag = 0;
-		}
-		else{		//found Invalid Date, reset flags
-			validDateFlag = 0;					//reset flag
-			validRowFlag = 0;					//Reset Flag
-			validCauseFlag = 0;
-
-		}
-	}
-
-	//printf("%d\n", CURRENT_COLUMN_NUM++, CURRENT_OUTTAGE_ROW_NUM);
+	printf("%d\n", CURRENT_COLUMN_NUM++);
 	CURRENT_COLUMN_NUM++;
 }
 
 //prints the end of line char
-void cb4 () {
-//	printf("%d\n", CURRENT_OUTTAGE_ROW_NUM);
+void cb4 (int c, void* cData) {
+	printf("%d\n", CURRENT_OUTTAGE_ROW_NUM);
 	CURRENT_COLUMN_NUM = 0;
 	CURRENT_OUTTAGE_ROW_NUM++;			//Never resets
 }
@@ -386,36 +387,22 @@ int main(int argc, char **argv){
 	int r = 12;
 	int c = 31;
 
-//	cData->dateArray = (struct tm**) malloc(3000 * sizeof(struct tm**));
-	cData->weatherDataY = (double**) malloc(r * sizeof(double*));
-	cData->outtageDataX = (int**) malloc(r * sizeof(int*));
-
-	for (int i = 0; i < 1000; i++){
-		cData->dateArray[i] = (struct tm*)malloc(sizeof(struct tm*));
-	}
-
-	for (int i = 0; i < r; i++){
-		if((cData->weatherDataY[i] = malloc(c * sizeof(double))) == NULL){
-			printf("Error on Columns\n");
-		}
-	}
-
-	for(int i = 0; i < r; i++){
-		if((cData->outtageDataX[i] = (int*)malloc(c * sizeof(int))) == NULL){
-			printf("Error on outage columns\n");
-		}
-	}
+//	cData->weatherDataY = (double**) malloc(r * sizeof(double*));
+//	cData->outtageDataX = (int**) malloc(r * sizeof(int*));
 //
-//	for (int i = 0; i < 12; i++){
-//		for (int j = 0; j < 31; j++){
-//			cData->outtageDataX[i][j] = 0;
-//			cData->weatherDataY[i][j] = 0;
+//	for (int i = 0; i < 1000; i++){
+//		cData->dateArray[i] = (struct tm*)malloc(sizeof(struct tm*));
+//	}
+//
+//	for (int i = 0; i < r; i++){
+//		if((cData->weatherDataY[i] = malloc(c * sizeof(double))) == NULL){
+//			printf("Error on Columns\n");
 //		}
 //	}
 //
-//	for (int i = 0; i < 12; i++){
-//		for (int j = 0; j < 31; j++){
-//			printf("%d, %d\n", cData->outtageDataX[i][j], (int)cData->weatherDataY[i][j]);
+//	for(int i = 0; i < r; i++){
+//		if((cData->outtageDataX[i] = (int*)malloc(c * sizeof(int))) == NULL){
+//			printf("Error on outage columns\n");
 //		}
 //	}
 
@@ -478,16 +465,16 @@ int main(int argc, char **argv){
 				/*	PHASE II	*/
 	//FOR TESTING PURPOSES ONLY
 	//MASTER
-	cData->durationofMonths = 12;
-	cData->startMonth = 0;
+//	cData->durationofMonths = 12;
+//	cData->startMonth = 0;
 
 	printf("Begin Computing\n");
 
 	checkArgs(argc, argv);						//Confirm the args are correct
 	cData->year = atoi(argv[1]);				//assign the Year
 	cData->LOA = atoi(argv[2]);					//assign the LOA
-	cData->outageCauseName = argv[3];			//Assign the outage cause
-	cData->weatherFactorName = argv[4];			//Assign the weather Factor
+//	cData->outageCauseName = argv[3];			//Assign the outage cause
+//	cData->weatherFactorName = argv[4];			//Assign the weather Factor
 //	cData->startMonth = startMonth;				//Assign the start month
 //	cData->durationofMonths = s;				//Assign the Number of Months to Compute
 
@@ -572,16 +559,29 @@ int main(int argc, char **argv){
 	//Close Files
 	fclose(weatherFile);
 	fclose(outtageFile);
-
+	printf("here\n");
 	//Free Data Structures
 	for (int i = 0; i < 12; i++){
-		free(cData->outtageDataX[i]);
 		free(cData->weatherDataY[i]);
+		for(int j = 0; j<31; j++){
+			free(cData->outtageDataX[i][j]);
+		}
 	}
+	printf("here\n");
 
-	free(cData->dateArray);
+//	for(int i = 0; i < 1000; i++){
+//		free(cData->dateArray[i]);
+//	}
+//
+//	free(cData->dateArray);
+//	printf("here\n");
+
 	free(cData->outtageDataX);
-	free(cData->weatherDataY);
+	printf("here\n");
+
+	//free(cData->weatherDataY);
+	printf("here\n");
+
 	free(cData);
 
 	printf("**Program Completed**\n");
